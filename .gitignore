@@ -1,0 +1,43 @@
+# .gitignore
+# Dependencias
+/vendor/
+/node_modules/
+
+# Archivos de configuración
+.env
+.env.local
+.env.production
+
+# Archivos de base de datos
+*.sql
+*.sqlite
+
+# Logs
+*.log
+error_log
+
+# Backups
+/backups/
+/copia*/
+copia de seguidad/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Archivos temporales
+*.tmp
+*.temp
+*.cache
+
+# Archivos de cache
+/cache/
+/tmp/
+
+# Archivos de sesión (si se guardan en disco)
+/sessions/

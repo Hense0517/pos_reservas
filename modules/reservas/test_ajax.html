@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AJAX Clientes</title>
+    <script>
+    function buscarClientes() {
+        const termino = document.getElementById('termino').value;
+        const resultados = document.getElementById('resultados');
+        
+        resultados.innerHTML = 'Buscando...';
+        
+        fetch('ajax_busquedas_simple.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ termino: termino })
+        })
+        .then(res => res.json())
+        .then(data => {
+            resultados.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        })
+        .catch(error => {
+            resultados.innerHTML = 'Error: ' + error;
+        });
+    }
+    </script>
+</head>
+<body>
+    <h2>Prueba de Búsqueda de Clientes</h2>
+    <input type="text" id="termino" placeholder="Documento o nombre" value="10781135">
+    <button onclick="buscarClientes()">Buscar</button>
+    <div id="resultados" style="margin-top:20px; background:#f5f5f5; padding:10px;"></div>
+</body>
+</html>

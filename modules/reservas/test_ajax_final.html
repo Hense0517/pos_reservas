@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AJAX Final</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .resultado { background: #f0f0f0; padding: 10px; margin-top: 10px; }
+        pre { background: #333; color: #fff; padding: 10px; overflow: auto; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        input { padding: 10px; width: 300px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <h2>🔍 Prueba de Búsqueda de Clientes</h2>
+    
+    <div>
+        <input type="text" id="termino" placeholder="Documento o nombre" value="10781135">
+        <button onclick="buscar()">Buscar</button>
+    </div>
+    
+    <div class="resultado" id="resultado"></div>
+
+    <script>
+    async function buscar() {
+        const termino = document.getElementById('termino').value;
+        const resultado = document.getElementById('resultado');
+        
+        resultado.innerHTML = 'Buscando...';
+        
+        try {
+            const response = await fetch('ajax_busquedas_simple.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'termino=' + encodeURIComponent(termino)
+            });
+            
+            const text = await response.text();
+            
+            // Mostrar la respuesta cruda primero
+            resultado.innerHTML = '<strong>Respuesta cruda:</strong><br><pre>' + 
+                                 escapeHtml(text) + '</pre>';
+            
+            // Intentar parsear JSON
+            try {
+                const json = JSON.parse(text);
+                resultado.innerHTML += '<br><strong>JSON parseado:</strong><br><pre>' + 
+                                      JSON.stringify(json, null, 2) + '</pre>';
+            } catch (e) {
+                resultado.innerHTML += '<br><strong style="color:red">Error parseando JSON: ' + e + '</strong>';
+            }
+            
+        } catch (error) {
+            resultado.innerHTML = 'Error: ' + error;
+        }
+    }
+    
+    function escapeHtml(text) {
+        return text.replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;')
+                  .replace(/'/g, '&#039;');
+    }
+    </script>
+</body>
+</html>
