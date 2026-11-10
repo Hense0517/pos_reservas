@@ -296,6 +296,7 @@ try {
             border-left-color: #3b82f6;
         }
     </style>
+    <?php require_once __DIR__ . '/../../includes/tema.php'; echo tema_head(true); ?>
 </head>
 <body class="bg-gray-50">
     <!-- Header simple -->

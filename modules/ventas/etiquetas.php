@@ -192,11 +192,11 @@ foreach ($productos_seleccionados as $id => $producto) {
             text-align: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 2px solid #4a6fa5;
+            border-bottom: 2px solid var(--tema-600,#4a6fa5);
         }
 
         h1 {
-            color: #2c3e50;
+            color: var(--tema-oscuro,#2c3e50);
             margin-bottom: 10px;
         }
 
@@ -226,7 +226,7 @@ foreach ($productos_seleccionados as $id => $producto) {
             display: block;
             margin-bottom: 5px;
             font-weight: 600;
-            color: #2c3e50;
+            color: var(--tema-oscuro,#2c3e50);
         }
 
         .filter-group input[type="text"],
@@ -269,7 +269,7 @@ foreach ($productos_seleccionados as $id => $producto) {
         }
 
         .btn-primary {
-            background-color: #4a6fa5;
+            background-color: var(--tema-600,#4a6fa5);
             color: white;
         }
 
@@ -492,7 +492,7 @@ foreach ($productos_seleccionados as $id => $producto) {
         .counter-value {
             font-size: 24px;
             font-weight: bold;
-            color: #4a6fa5;
+            color: var(--tema-600,#4a6fa5);
         }
 
         .counter-label {
@@ -527,7 +527,7 @@ foreach ($productos_seleccionados as $id => $producto) {
 
         .select-all label {
             font-weight: 600;
-            color: #2c3e50;
+            color: var(--tema-oscuro,#2c3e50);
         }
 
         /* Lista de productos seleccionados */
@@ -669,6 +669,7 @@ foreach ($productos_seleccionados as $id => $producto) {
             }
         }
     </style>
+    <?php require_once __DIR__ . '/../../includes/tema.php'; echo tema_head(false); ?>
 </head>
 <body>
     <header>

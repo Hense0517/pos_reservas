@@ -3,6 +3,7 @@
 
 session_start();
 require_once '../../config/database.php';
+require_once '../../includes/tema.php';
 
 // Verificar si el usuario está autenticado
 if (!isset($_SESSION['usuario_id'])) {
@@ -35,6 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $moneda = trim($_POST['moneda'] ?? 'USD');
         $impuesto = floatval($_POST['impuesto'] ?? 0);
 
+        // Paleta de colores: solo el administrador puede cambiarla (afecta a todo el sistema)
+        $paleta = isset($_POST['paleta_colores']) ? trim((string) $_POST['paleta_colores']) : null;
+        $puede_cambiar_paleta = (($_SESSION['usuario_rol'] ?? '') === 'admin');
+        $aviso_paleta = '';
+
         // Validaciones básicas
         $errores = [];
 
@@ -48,6 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($impuesto < 0 || $impuesto > 100) {
             $errores[] = "El impuesto debe estar entre 0 y 100";
+        }
+
+        if ($paleta !== null && $paleta !== '' && !isset(tema_paletas()[$paleta])) {
+            $errores[] = "La paleta de colores seleccionada no es válida";
         }
 
         // Verificar y crear carpeta de logos si no existe
@@ -188,6 +198,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$nombre_negocio, $ruc, $direccion, $telefono, $email, $moneda, $impuesto, $ruta_logo]);
             }
 
+            // Guardar la paleta elegida (requiere la columna creada con migrations/2026-11-paleta-colores.sql)
+            if ($paleta && $puede_cambiar_paleta) {
+                if (tema_columna_existe($conn)) {
+                    $stmt = $conn->prepare("UPDATE configuracion_negocio SET paleta_colores = ?");
+                    $stmt->execute([$paleta]);
+                } else {
+                    $aviso_paleta = "La paleta no se guardó: falta ejecutar el script migrations/2026-11-paleta-colores.sql en la base de datos.";
+                }
+            }
+
             // Si se subió un nuevo logo y existe un logo anterior, eliminarlo
             if ($nuevo_logo_subido && $logo_anterior && !empty($logo_anterior)) {
                 // Extraer solo el nombre del archivo de la ruta relativa anterior
@@ -203,6 +223,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->commit();
 
             $_SESSION['success'] = "Configuración guardada exitosamente";
+            if ($aviso_paleta !== '') {
+                $_SESSION['error'] = $aviso_paleta;
+            }
             header('Location: index.php');
             exit;
 

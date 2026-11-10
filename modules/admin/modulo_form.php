@@ -4,6 +4,7 @@
     <title>Gestión de Módulos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <?php require_once __DIR__ . '/../../includes/tema.php'; echo tema_head(true); ?>
 </head>
 <body>
     <div class="container mx-auto p-6">

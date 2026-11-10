@@ -26,16 +26,20 @@ header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Pragma: no-cache");
 
 // CSP: política de seguridad de contenido
+// El JavaScript y el CSS del login son archivos propios (assets/js/login.js y assets/css/login.css),
+// por eso no hace falta permitir scripts en línea ni CDNs de scripts.
 header(
     "Content-Security-Policy: " .
     "default-src 'self'; " .
-    "script-src 'self' 'nonce-{{NONCE}}' https://cdn.tailwindcss.com; " .
-    "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; " .
+    "script-src 'self'; " .
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; " .
     "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; " .
     "img-src 'self' data:; " .
     "connect-src 'self'; " .
     "frame-src 'none'; " .
-    "object-src 'none';"
+    "object-src 'none'; " .
+    "base-uri 'self'; " .
+    "form-action 'self';"
 );
 
 // ============================================
@@ -231,315 +235,256 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$locked) {
     }
 }
 
-$negocio_nombre = htmlspecialchars(Env::get('NEGOCIO_NOMBRE', 'IMPORTADOS LH'), ENT_QUOTES, 'UTF-8');
+// ============================================
+// DATOS DE PRESENTACIÓN (nombre, logo y paleta del negocio)
+// ============================================
+require_once __DIR__ . '/includes/tema.php';
+
+$negocio_nombre_raw = Env::get('NEGOCIO_NOMBRE', 'Mi Peluquería');
+$negocio_logo = '';
+try {
+    $cfg = Database::getInstance()->getConnection()
+        ->query("SELECT * FROM configuracion_negocio ORDER BY id DESC LIMIT 1")->fetch();
+    if ($cfg) {
+        if (!empty($cfg['nombre_negocio'])) {
+            $negocio_nombre_raw = $cfg['nombre_negocio'];
+        }
+        // El logo solo se muestra si el archivo existe y está dentro de la carpeta de imágenes del proyecto
+        if (!empty($cfg['logo'])) {
+            $ruta_logo = ltrim(str_replace('\\', '/', (string) $cfg['logo']), '/');
+            if (strpos($ruta_logo, '..') === false && is_file(__DIR__ . '/' . $ruta_logo)) {
+                $negocio_logo = $ruta_logo;
+            }
+        }
+    }
+} catch (Throwable $e) {
+    error_log('login: no se pudo leer la configuración del negocio: ' . $e->getMessage());
+}
+
+$negocio_nombre = htmlspecialchars($negocio_nombre_raw, ENT_QUOTES, 'UTF-8');
+// Si el servidor devolvió un error, no repetir la animación de entrada
+$sin_intro = ($_SERVER['REQUEST_METHOD'] === 'POST' || $error !== '');
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- [FIX BAJO] Sin información de versión del sistema en el title -->
-    <title>Acceso al Sistema</title>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qap4LQ=="
-          crossorigin="anonymous" referrerpolicy="no-referrer">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Montserrat', sans-serif;
-            background: #f8f9fa;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow-x: hidden;
-        }
-        body::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.03"><path d="M20 20 L80 20 M20 40 L80 40 M20 60 L80 60 M20 80 L80 80 M20 20 L20 80 M40 20 L40 80 M60 20 L60 80 M80 20 L80 80" stroke="%23000000" stroke-width="1" fill="none"/></svg>');
-            background-size: 50px 50px; z-index: 0;
-        }
-        .fashion-decoration { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; z-index: 1; }
-        .fashion-decoration span { position: absolute; font-family: 'Playfair Display', serif; color: rgba(0,0,0,0.02); font-weight: 900; text-transform: uppercase; white-space: nowrap; transform: rotate(-15deg); }
-        .fashion-decoration span:nth-child(1) { top: 5%; left: -5%; font-size: 180px; }
-        .fashion-decoration span:nth-child(2) { bottom: 10%; right: -5%; font-size: 200px; transform: rotate(10deg); }
-        .login-container { width: 100%; max-width: 1200px; margin: 20px; position: relative; z-index: 10; animation: fadeInUp 1s ease-out; }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        .login-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            background: white;
-            border-radius: 30px;
-            overflow: hidden;
-            box-shadow: 0 40px 70px -20px rgba(0,0,0,0.25), 0 10px 30px -10px rgba(0,0,0,0.1);
-        }
-        .fashion-side {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            padding: 60px 50px;
-            display: flex; flex-direction: column; justify-content: space-between;
-            position: relative; overflow: hidden;
-        }
-        .fashion-side::after {
-            content: '👔 👗 👕 👖 🧥 👚';
-            position: absolute; bottom: 20px; right: 20px;
-            font-size: 80px; opacity: 0.1; transform: rotate(-10deg);
-            white-space: nowrap; line-height: 1; pointer-events: none;
-        }
-        .fashion-content { position: relative; z-index: 10; }
-        .fashion-logo h1 { font-family: 'Playfair Display', serif; font-size: 52px; font-weight: 900; color: white; letter-spacing: 2px; line-height: 1.1; margin-bottom: 10px; }
-        .fashion-logo span { display: block; font-size: 18px; font-weight: 300; color: rgba(255,255,255,0.7); letter-spacing: 4px; text-transform: uppercase; margin-top: 5px; }
-        .fashion-quote { margin-top: 60px; margin-bottom: 40px; }
-        .fashion-quote p { font-family: 'Playfair Display', serif; font-size: 24px; color: white; line-height: 1.6; font-style: italic; margin-bottom: 20px; }
-        .fashion-quote cite { color: rgba(255,255,255,0.5); font-size: 16px; font-style: normal; letter-spacing: 1px; }
-        .fashion-stats { display: flex; gap: 30px; margin-top: 40px; }
-        .stat-number { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: white; }
-        .stat-label { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; }
-        .fashion-seasons { display: flex; gap: 20px; margin-top: 30px; }
-        .season-tag { padding: 8px 16px; background: rgba(255,255,255,0.1); border-radius: 40px; color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500; letter-spacing: 0.5px; }
-        .form-side { padding: 60px 50px; background: white; display: flex; flex-direction: column; }
-        .form-header { margin-bottom: 40px; }
-        .form-header h2 { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700; color: #1a1a1a; margin-bottom: 10px; }
-        .form-header p { color: #666; font-size: 15px; font-weight: 300; }
-        .form-group { margin-bottom: 25px; position: relative; }
-        .form-label { display: block; margin-bottom: 10px; font-weight: 500; color: #333; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .input-wrapper { position: relative; }
-        .input-icon { position: absolute; left: 0; top: 50%; transform: translateY(-50%); color: #999; font-size: 18px; transition: all 0.3s; z-index: 1; }
-        .input-field { width: 100%; padding: 15px 0 15px 30px; border: none; border-bottom: 2px solid #e0e0e0; font-size: 15px; transition: all 0.3s; outline: none; font-family: 'Montserrat', sans-serif; background: transparent; color: #333; }
-        .input-field:focus { border-bottom-color: #1a1a1a; }
-        .input-field::placeholder { color: #bbb; font-weight: 300; font-size: 14px; }
-        .error-message { background: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px 20px; margin-bottom: 30px; display: flex; align-items: center; gap: 12px; color: #dc2626; font-size: 14px; animation: slideDown 0.4s ease; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .attempts-badge { background: #f3f4f6; border-radius: 40px; padding: 10px 18px; margin-bottom: 25px; display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: #4b5563; font-weight: 500; border: 1px solid #e5e7eb; }
-        .btn-login { width: 100%; padding: 18px 30px; background: #1a1a1a; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.4s; display: flex; align-items: center; justify-content: center; gap: 12px; margin: 35px 0 25px; position: relative; overflow: hidden; letter-spacing: 0.5px; text-transform: uppercase; }
-        .btn-login::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: left 0.7s; }
-        .btn-login:hover { background: #333; transform: translateY(-2px); box-shadow: 0 20px 30px -10px rgba(0,0,0,0.3); }
-        .btn-login:hover::before { left: 100%; }
-        .btn-login:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
-        .form-footer { text-align: center; margin-top: 20px; border-top: 1px solid #f0f0f0; padding-top: 25px; }
-        .forgot-password { color: #666; font-size: 13px; text-decoration: none; transition: color 0.3s; display: inline-flex; align-items: center; gap: 8px; }
-        .forgot-password:hover { color: #1a1a1a; }
-        .copyright { text-align: center; margin-top: auto; padding-top: 30px; font-size: 13px; color: #999; font-weight: 300; line-height: 1.6; }
-        .copyright strong { color: #1a1a1a; font-weight: 600; }
-        .honeypot-field { display: none !important; }
-        form { flex: 1; display: flex; flex-direction: column; }
-        @media (max-width: 968px) {
-            .login-grid { grid-template-columns: 1fr; }
-            .fashion-side, .form-side { padding: 40px 30px; }
-            .fashion-logo h1 { font-size: 42px; }
-        }
-        @media (max-width: 480px) {
-            .login-container { margin: 10px; }
-            .fashion-side, .form-side { padding: 30px 20px; }
-        }
-    </style>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Acceso al sistema · <?= $negocio_nombre ?></title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <?= tema_head() ?>
+    <link rel="stylesheet" href="assets/css/login.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/login.css') ?>">
+    <script src="assets/js/login.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/login.js') ?>" defer></script>
 </head>
-<body>
-    <div class="fashion-decoration">
-        <span>FASHION</span>
-        <span>STYLE</span>
+<body class="login-body<?= $sin_intro ? ' no-intro' : '' ?>"
+      data-sin-intro="<?= $sin_intro ? '1' : '0' ?>"
+      data-bloqueado="<?= $locked ? '1' : '0' ?>">
+
+    <!-- Fondo: 5 fotos reales que cambian solas -->
+    <div class="bg-slides" aria-hidden="true">
+        <div class="bg-slide slide-1"></div>
+        <div class="bg-slide slide-2"></div>
+        <div class="bg-slide slide-3"></div>
+        <div class="bg-slide slide-4"></div>
+        <div class="bg-slide slide-5"></div>
+    </div>
+    <div class="bg-overlay" aria-hidden="true"></div>
+
+    <!-- Intro: se abre como un corte de tijeras -->
+    <div class="intro" id="intro" aria-hidden="true">
+        <div class="curtain top"></div>
+        <div class="curtain bottom"></div>
+        <div class="intro-cut"></div>
+        <div class="intro-core">
+            <div class="intro-emblem">
+                <svg viewBox="0 0 120 120"><circle class="ring-soft" cx="60" cy="60" r="52"/><circle cx="60" cy="60" r="52"/></svg>
+                <?php if ($negocio_logo !== ''): ?>
+                    <img class="intro-logo" src="<?= htmlspecialchars($negocio_logo, ENT_QUOTES, 'UTF-8') ?>" alt="">
+                <?php else: ?>
+                    <i class="fas fa-scissors"></i>
+                <?php endif; ?>
+            </div>
+            <div class="intro-name" id="introName" data-texto="<?= $negocio_nombre ?>"><?= $negocio_nombre ?></div>
+            <div class="intro-tag">Cabello · Color · Estilo</div>
+        </div>
+        <button type="button" class="intro-skip" id="introSkip">Saltar intro</button>
     </div>
 
-    <div class="login-container">
+    <main class="login-stage">
         <div class="login-grid">
 
-            <!-- Lado izquierdo -->
-            <div class="fashion-side">
-                <div class="fashion-content">
-                    <div class="fashion-logo">
-                        <!-- [FIX] Nombre del negocio escapado para prevenir XSS -->
-                        <h1><?= $negocio_nombre ?></h1>
-                        <span>COLLECTION <?= date('Y') ?></span>
-                    </div>
-                    <div class="fashion-quote">
-                        <p>"La moda es la armadura<br>para sobrevivir a la realidad<br>cotidiana."</p>
-                        <cite>— Bill Cunningham</cite>
-                    </div>
-                    <div class="fashion-stats">
-                        <div class="stat-item">
-                            <div class="stat-number">500+</div>
-                            <div class="stat-label">PRENDAS</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">50+</div>
-                            <div class="stat-label">MARCAS</div>
-                        </div>
-                    </div>
-                    <div class="fashion-seasons">
-                        <span class="season-tag">SPRING <?= date('Y') ?></span>
-                        <span class="season-tag">SUMMER <?= date('Y') ?></span>
-                        <span class="season-tag">FALL <?= date('Y') ?></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Lado derecho - Formulario -->
-            <div class="form-side">
-                <div class="form-header">
-                    <h2>Acceso Privado</h2>
-                    <p>Ingresa tus credenciales para continuar</p>
+            <!-- Mensajes sobre el mundo del cabello (cambian junto con el fondo) -->
+            <section class="hero" aria-label="Presentación">
+                <div class="hero-brand">
+                    <span class="dot"><i class="fas fa-scissors" aria-hidden="true"></i></span>
+                    <span><?= $negocio_nombre ?></span>
                 </div>
 
-                <?php if ($error): ?>
-                <div class="error-message" role="alert">
-                    <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
-                    <!-- [FIX] htmlspecialchars ya aplicado, doble escape no necesario pero seguro -->
-                    <span><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
+                <div class="hero-copy" aria-live="off">
+                    <article class="hero-slide is-active">
+                        <span class="hero-kicker"><i class="fas fa-spray-can-sparkles" aria-hidden="true"></i> Tu salón</span>
+                        <h2 class="hero-title">Tu peluquería, siempre en su <em>mejor versión</em></h2>
+                        <p class="hero-text">Agenda, ventas e inventario en un solo lugar para que te dediques a lo que mejor sabes hacer.</p>
+                    </article>
+                    <article class="hero-slide">
+                        <span class="hero-kicker"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> Peinados</span>
+                        <h2 class="hero-title">Rizos que cuentan <em>historias</em></h2>
+                        <p class="hero-text">Cada reserva es una oportunidad de dejar a un cliente feliz. Organiza tu agenda sin perder ni una cita.</p>
+                    </article>
+                    <article class="hero-slide">
+                        <span class="hero-kicker"><i class="fas fa-palette" aria-hidden="true"></i> Color</span>
+                        <h2 class="hero-title">Color, brillo y <em>personalidad</em></h2>
+                        <p class="hero-text">Controla servicios, productos y caja con claridad: sabrás cuánto vendes y qué necesitas reponer.</p>
+                    </article>
+                    <article class="hero-slide">
+                        <span class="hero-kicker"><i class="fas fa-scissors" aria-hidden="true"></i> Corte</span>
+                        <h2 class="hero-title">Precisión en cada <em>corte</em></h2>
+                        <p class="hero-text">Como unas buenas tijeras: un negocio afilado, ordenado y listo para atender.</p>
+                    </article>
+                    <article class="hero-slide">
+                        <span class="hero-kicker"><i class="fas fa-heart" aria-hidden="true"></i> Cuidado capilar</span>
+                        <h2 class="hero-title">Cabello sano, clientes <em>fieles</em></h2>
+                        <p class="hero-text">Conoce a tus clientes, su historial y sus preferencias para ofrecer una atención que no olvidan.</p>
+                    </article>
                 </div>
-                <?php endif; ?>
 
-                <?php
-                // Mostrar intentos restantes (solo si hay intentos, nunca en bloqueo total)
-                $ip_rate = $_SESSION[$ip_key] ?? null;
-                if ($ip_rate && $ip_rate['attempts'] > 0 && $ip_rate['attempts'] < $max_attempts):
-                    $intentos_restantes = $max_attempts - $ip_rate['attempts'];
-                ?>
-                <div class="attempts-badge">
-                    <i class="fas fa-shield-alt"></i>
-                    Intento <?= $ip_rate['attempts'] ?> de <?= $max_attempts ?>
-                    (<?= $intentos_restantes ?> restante<?= $intentos_restantes !== 1 ? 's' : '' ?>)
+                <div class="hero-dots" role="tablist" aria-label="Cambiar mensaje">
+                    <?php for ($n = 1; $n <= 5; $n++): ?>
+                        <button type="button" class="hero-dot<?= $n === 1 ? ' is-active' : '' ?>" aria-label="Mensaje <?= $n ?> de 5"></button>
+                    <?php endfor; ?>
                 </div>
-                <?php endif; ?>
 
-                <form method="POST" id="loginForm" autocomplete="off" novalidate>
-                    <!-- Token CSRF -->
-                    <input type="hidden" name="csrf_token"
-                           value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
+                <ul class="hero-points">
+                    <li><i class="fas fa-calendar-check" aria-hidden="true"></i> Agenda de citas</li>
+                    <li><i class="fas fa-cash-register" aria-hidden="true"></i> Ventas y caja</li>
+                    <li><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Inventario</li>
+                    <li><i class="fas fa-user-group" aria-hidden="true"></i> Clientes</li>
+                </ul>
+            </section>
 
-                    <!-- [FIX] Honeypot con clase CSS en lugar de style inline para mejor compatibilidad con CSP -->
-                    <div class="honeypot-field" aria-hidden="true" tabindex="-1">
-                        <input type="text" name="honeypot" autocomplete="off" tabindex="-1" value="">
-                    </div>
-
-                    <!-- Campo usuario -->
-                    <div class="form-group">
-                        <label class="form-label" for="username">USUARIO</label>
-                        <div class="input-wrapper">
-                            <i class="far fa-user input-icon" aria-hidden="true"></i>
-                            <input type="text"
-                                   id="username"
-                                   name="username"
-                                   placeholder="ej: admin, vendedor, gerente"
-                                   class="input-field"
-                                   maxlength="50"
-                                   autocomplete="username"
-                                   required
-                                   aria-required="true"
-                                   aria-label="Nombre de usuario">
-                            <!-- [FIX CRÍTICO] NO repopular el campo username en errores
-                                 para evitar username enumeration y XSS reflected -->
+            <!-- Formulario -->
+            <section class="card-wrap">
+                <div class="login-card">
+                    <div class="card-head">
+                        <div class="card-logo">
+                            <?php if ($negocio_logo !== ''): ?>
+                                <img src="<?= htmlspecialchars($negocio_logo, ENT_QUOTES, 'UTF-8') ?>" alt="Logo de <?= $negocio_nombre ?>">
+                            <?php else: ?>
+                                <i class="fas fa-scissors" aria-hidden="true"></i>
+                            <?php endif; ?>
                         </div>
+                        <h1 class="card-title">Bienvenido de nuevo</h1>
+                        <p class="card-subtitle">Ingresa para gestionar <?= $negocio_nombre ?></p>
                     </div>
 
-                    <!-- Campo contraseña -->
-                    <div class="form-group">
-                        <label class="form-label" for="password">CONTRASEÑA</label>
-                        <div class="input-wrapper">
-                            <i class="fas fa-lock input-icon" aria-hidden="true"></i>
-                            <input type="password"
-                                   id="password"
-                                   name="password"
-                                   placeholder="••••••••"
-                                   class="input-field"
-                                   maxlength="200"
-                                   autocomplete="current-password"
-                                   required
-                                   aria-required="true"
-                                   aria-label="Contraseña">
+                    <!-- Indicador de pasos: muestra en qué campo estás -->
+                    <div class="steps" id="steps" aria-hidden="true">
+                        <div class="step is-active" data-step="username"><span class="step-num">1</span><span>Usuario</span></div>
+                        <div class="step-bar"><span></span></div>
+                        <div class="step" data-step="password"><span class="step-num">2</span><span>Contraseña</span></div>
+                    </div>
+
+                    <?php if ($error): ?>
+                        <div class="alert <?= $locked ? 'alert-warn' : 'alert-error' ?>" role="alert">
+                            <i class="fas <?= $locked ? 'fa-lock' : 'fa-circle-exclamation' ?>" aria-hidden="true"></i>
+                            <span><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
                         </div>
-                    </div>
+                    <?php endif; ?>
 
-                    <button type="submit"
-                            class="btn-login"
-                            id="submitBtn"
-                            <?= $locked ? 'disabled aria-disabled="true"' : '' ?>>
-                        <span>INGRESAR AL SISTEMA</span>
-                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                    </button>
+                    <?php
+                    // Mostrar intentos restantes (solo si hay intentos, nunca en bloqueo total)
+                    $ip_rate = $_SESSION[$ip_key] ?? null;
+                    if ($ip_rate && $ip_rate['attempts'] > 0 && $ip_rate['attempts'] < $max_attempts):
+                        $intentos_restantes = $max_attempts - $ip_rate['attempts'];
+                    ?>
+                        <div class="attempts-badge">
+                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                            Intento <?= (int) $ip_rate['attempts'] ?> de <?= (int) $max_attempts ?>
+                            (<?= (int) $intentos_restantes ?> restante<?= $intentos_restantes !== 1 ? 's' : '' ?>)
+                        </div>
+                    <?php endif; ?>
 
-                    <div class="form-footer">
-                        <a href="#" class="forgot-password">
-                            <i class="far fa-question-circle" aria-hidden="true"></i>
-                            ¿Olvidaste tu contraseña?
-                        </a>
+                    <form method="POST" id="loginForm" autocomplete="off" novalidate>
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
+
+                        <!-- Honeypot: un humano nunca lo ve -->
+                        <div class="honeypot-field" aria-hidden="true">
+                            <input type="text" name="honeypot" autocomplete="off" tabindex="-1" value="">
+                        </div>
+
+                        <!-- Usuario -->
+                        <div class="field reveal" id="field-username" style="animation-delay:.25s">
+                            <label class="field-label" for="username">
+                                <span>Usuario</span>
+                                <span class="field-badge"><i class="fas fa-pen-nib" aria-hidden="true"></i> Escribiendo aquí</span>
+                            </label>
+                            <div class="input-wrap">
+                                <i class="far fa-user input-icon" aria-hidden="true"></i>
+                                <input type="text" id="username" name="username" class="input-field"
+                                       placeholder="Tu nombre de usuario"
+                                       maxlength="50" autocomplete="username" autocapitalize="none" spellcheck="false"
+                                       required aria-required="true" aria-describedby="hint-username"
+                                       <?= $locked ? 'disabled' : '' ?>>
+                                <i class="fas fa-circle-check input-status ok" aria-hidden="true"></i>
+                                <i class="fas fa-circle-exclamation input-status bad" aria-hidden="true"></i>
+                            </div>
+                            <p class="field-hint" id="hint-username" aria-live="polite"></p>
+                            <!-- No se repopula el usuario tras un error: evita enumeración de usuarios y XSS reflejado -->
+                        </div>
+
+                        <!-- Contraseña -->
+                        <div class="field field-has-toggle reveal" id="field-password" style="animation-delay:.35s">
+                            <label class="field-label" for="password">
+                                <span>Contraseña</span>
+                                <span class="field-badge"><i class="fas fa-pen-nib" aria-hidden="true"></i> Escribiendo aquí</span>
+                            </label>
+                            <div class="input-wrap">
+                                <i class="fas fa-lock input-icon" aria-hidden="true"></i>
+                                <input type="password" id="password" name="password" class="input-field"
+                                       placeholder="••••••••"
+                                       maxlength="200" autocomplete="current-password"
+                                       required aria-required="true" aria-describedby="hint-password"
+                                       <?= $locked ? 'disabled' : '' ?>>
+                                <i class="fas fa-circle-check input-status ok" aria-hidden="true"></i>
+                                <i class="fas fa-circle-exclamation input-status bad" aria-hidden="true"></i>
+                                <button type="button" class="toggle-pass" id="togglePass" aria-label="Mostrar contraseña" aria-pressed="false">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <p class="field-hint" id="hint-password" aria-live="polite"></p>
+                            <p class="caps-warning" id="capsWarning" role="status"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Tienes activado Bloq Mayús</p>
+                        </div>
+
+                        <button type="submit" class="btn-login reveal" id="submitBtn" style="animation-delay:.45s"
+                                <?= $locked ? 'disabled aria-disabled="true"' : '' ?>>
+                            <span>Ingresar al sistema</span>
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                        </button>
+                    </form>
+
+                    <div class="card-footer reveal" style="animation-delay:.55s">
+                        <button type="button" class="forgot" id="forgotBtn" aria-expanded="false" aria-controls="forgotHelp">
+                            <i class="far fa-circle-question" aria-hidden="true"></i> ¿Olvidaste tu contraseña?
+                        </button>
+                        <p class="forgot-help" id="forgotHelp">
+                            Por seguridad, la contraseña la restablece el administrador del sistema.
+                            Comunícate con él e indícale tu nombre de usuario.
+                        </p>
                     </div>
 
                     <div class="copyright">
                         Desarrollado por <strong>Henry Vergara</strong><br>
-                        © <?= date('Y') ?> Fashion Store — Todos los derechos reservados
+                        © <?= date('Y') ?> <?= $negocio_nombre ?> — Todos los derechos reservados
                     </div>
-                </form>
-            </div>
-
+                </div>
+            </section>
         </div>
-    </div>
-
-    <script>
-        // Prevenir envío múltiple
-        let submitting = false;
-        const form = document.getElementById('loginForm');
-        const btn  = document.getElementById('submitBtn');
-
-        form.addEventListener('submit', function(e) {
-            // Validación básica del lado cliente
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-
-            if (!username || !password) {
-                e.preventDefault();
-                return false;
-            }
-
-            if (submitting) {
-                e.preventDefault();
-                return false;
-            }
-
-            submitting = true;
-            btn.innerHTML = '<span>VERIFICANDO...</span><i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
-            btn.disabled = true;
-        });
-
-        // Enfocar campo de usuario al cargar
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('username').focus();
-        });
-
-        // Efecto de iconos en focus
-        document.querySelectorAll('.input-field').forEach(function(input) {
-            input.addEventListener('focus', function() {
-                const icon = this.parentElement.querySelector('.input-icon');
-                if (icon) icon.style.color = '#1a1a1a';
-            });
-            input.addEventListener('blur', function() {
-                if (!this.value) {
-                    const icon = this.parentElement.querySelector('.input-icon');
-                    if (icon) icon.style.color = '#999';
-                }
-            });
-        });
-
-        // Animación de entrada
-        document.querySelectorAll('.form-group, .btn-login, .form-footer, .copyright')
-            .forEach(function(el, index) {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(20px)';
-                el.style.transition = 'all 0.5s ease-out';
-                setTimeout(function() {
-                    el.style.opacity = '1';
-                    el.style.transform = 'translateY(0)';
-                }, 300 + index * 100);
-            });
-    </script>
+    </main>
 </body>
 </html>

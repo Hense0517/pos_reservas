@@ -182,6 +182,7 @@ if (isset($_SESSION['mensaje'])) {
             margin: 0 auto;
         }
     </style>
+    <?php require_once __DIR__ . '/../../../includes/tema.php'; echo tema_head(false, true); ?>
 </head>
 <body>
     <div class="main-container">

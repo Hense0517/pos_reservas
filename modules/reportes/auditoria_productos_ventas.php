@@ -178,7 +178,7 @@ function formato_fecha($fecha) {
         .container { max-width: 1200px; margin: 0 auto; }
         
         .header { 
-            background: #2c3e50; 
+            background: var(--tema-oscuro,#2c3e50); 
             color: white; 
             padding: 20px; 
             border-radius: 10px 10px 0 0;
@@ -215,7 +215,7 @@ function formato_fecha($fecha) {
         }
         
         .btn {
-            background: #3498db;
+            background: var(--tema-600,#3498db);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -234,12 +234,12 @@ function formato_fecha($fecha) {
         
         .btn-outline {
             background: transparent;
-            border: 1px solid #3498db;
-            color: #3498db;
+            border: 1px solid var(--tema-600,#3498db);
+            color: var(--tema-600,#3498db);
         }
         
         .btn-outline:hover {
-            background: #3498db;
+            background: var(--tema-600,#3498db);
             color: white;
         }
         
@@ -329,6 +329,7 @@ function formato_fecha($fecha) {
             .card { box-shadow: none; border: 1px solid #ddd; }
         }
     </style>
+    <?php require_once __DIR__ . '/../../includes/tema.php'; echo tema_head(false); ?>
 </head>
 <body>
     <div class="container">
@@ -456,7 +457,7 @@ function formato_fecha($fecha) {
                                 <td>
                                     <a href="../../modules/ventas/ver.php?id=<?php echo $venta['venta_id']; ?>" 
                                        target="_blank" 
-                                       style="color: #3498db; text-decoration: none;">
+                                       style="color: var(--tema-600,#3498db); text-decoration: none;">
                                         <?php echo $venta['numero_factura']; ?>
                                     </a>
                                 </td>
@@ -563,7 +564,7 @@ function formato_fecha($fecha) {
                             <?php endforeach; ?>
                             
                             <!-- TOTALES GENERALES -->
-                            <tr style="background: #2c3e50; color: white; font-weight: bold;">
+                            <tr style="background: var(--tema-oscuro,#2c3e50); color: white; font-weight: bold;">
                                 <td colspan="4">TOTALES GENERALES</td>
                                 <td><?php echo count($productos_con_ventas); ?> productos</td>
                                 <td><?php echo $total_general_cantidad; ?></td>

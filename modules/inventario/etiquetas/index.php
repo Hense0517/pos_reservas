@@ -279,7 +279,7 @@ foreach ($productos_seleccionados as $id => $producto) {
         }
 
         h1 {
-            color: #2c3e50;
+            color: var(--tema-oscuro,#2c3e50);
             font-size: 1.5rem;
             display: flex;
             align-items: center;
@@ -293,7 +293,7 @@ foreach ($productos_seleccionados as $id => $producto) {
         }
 
         .stat-badge {
-            background: #4a6fa5;
+            background: var(--tema-600,#4a6fa5);
             color: white;
             padding: 5px 15px;
             border-radius: 20px;
@@ -320,7 +320,7 @@ foreach ($productos_seleccionados as $id => $producto) {
             display: block;
             margin-bottom: 5px;
             font-weight: 600;
-            color: #2c3e50;
+            color: var(--tema-oscuro,#2c3e50);
             font-size: 0.9rem;
         }
 
@@ -357,7 +357,7 @@ foreach ($productos_seleccionados as $id => $producto) {
 
         .filter-option.active {
             background-color: #e6f7ff;
-            border-left: 3px solid #4a6fa5;
+            border-left: 3px solid var(--tema-600,#4a6fa5);
         }
 
         .filter-option input[type="checkbox"] {
@@ -367,7 +367,7 @@ foreach ($productos_seleccionados as $id => $producto) {
         .filter-option i {
             width: 20px;
             text-align: center;
-            color: #4a6fa5;
+            color: var(--tema-600,#4a6fa5);
         }
 
         .filter-buttons {
@@ -390,7 +390,7 @@ foreach ($productos_seleccionados as $id => $producto) {
         }
 
         .btn-primary {
-            background-color: #4a6fa5;
+            background-color: var(--tema-600,#4a6fa5);
             color: white;
         }
 
@@ -480,9 +480,9 @@ foreach ($productos_seleccionados as $id => $producto) {
         }
 
         .pagination-btn.active {
-            background: #4a6fa5;
+            background: var(--tema-600,#4a6fa5);
             color: white;
-            border-color: #4a6fa5;
+            border-color: var(--tema-600,#4a6fa5);
         }
 
         .pagination-btn.disabled {
@@ -541,7 +541,7 @@ foreach ($productos_seleccionados as $id => $producto) {
             font-weight: 600;
             font-size: 0.9rem;
             margin-bottom: 2px;
-            color: #2c3e50;
+            color: var(--tema-oscuro,#2c3e50);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -672,7 +672,7 @@ foreach ($productos_seleccionados as $id => $producto) {
         .stat-value {
             font-size: 1.2rem;
             font-weight: bold;
-            color: #4a6fa5;
+            color: var(--tema-600,#4a6fa5);
             display: block;
         }
 
@@ -856,6 +856,7 @@ foreach ($productos_seleccionados as $id => $producto) {
             }
         }
     </style>
+    <?php require_once __DIR__ . '/../../../includes/tema.php'; echo tema_head(false); ?>
 </head>
 <body>
     <!-- HEADER -->
@@ -872,7 +873,7 @@ foreach ($productos_seleccionados as $id => $producto) {
     <div class="container">
         <!-- COLUMNA 1: FILTROS -->
         <div class="filters-panel">
-            <h2 style="margin-bottom: 20px; color: #2c3e50; font-size: 1.1rem;">
+            <h2 style="margin-bottom: 20px; color: var(--tema-oscuro,#2c3e50); font-size: 1.1rem;">
                 <i class="fas fa-filter"></i> Filtros de Búsqueda
             </h2>
             
@@ -900,7 +901,7 @@ foreach ($productos_seleccionados as $id => $producto) {
                 
                 <!-- OPCIONES DE FILTRO DE STOCK -->
                 <div class="filter-options">
-                    <h3 style="font-size: 0.9rem; color: #4a6fa5; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <h3 style="font-size: 0.9rem; color: var(--tema-600,#4a6fa5); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-filter"></i> Filtrar por Stock
                     </h3>
                     
@@ -947,7 +948,7 @@ foreach ($productos_seleccionados as $id => $producto) {
         <!-- COLUMNA 2: LISTA DE PRODUCTOS CON PAGINACIÓN -->
         <div class="products-list-container">
             <div class="products-header">
-                <h2 style="color: #2c3e50; font-size: 1.1rem;">
+                <h2 style="color: var(--tema-oscuro,#2c3e50); font-size: 1.1rem;">
                     <i class="fas fa-boxes"></i> Productos Disponibles
                 </h2>
                 <span style="font-size: 0.9rem; color: #666;">
@@ -972,7 +973,7 @@ foreach ($productos_seleccionados as $id => $producto) {
                 <form method="POST" action="" id="form-productos">
                     <div class="select-all">
                         <input type="checkbox" id="select-all">
-                        <label for="select-all" style="font-weight: 600; color: #2c3e50;">
+                        <label for="select-all" style="font-weight: 600; color: var(--tema-oscuro,#2c3e50);">
                             Seleccionar todos
                         </label>
                     </div>
@@ -1087,7 +1088,7 @@ foreach ($productos_seleccionados as $id => $producto) {
             <!-- SECCIÓN SUPERIOR: PRODUCTOS SELECCIONADOS -->
             <div class="selected-section">
                 <div class="selected-header">
-                    <h2 style="color: #2c3e50; font-size: 1.1rem;">
+                    <h2 style="color: var(--tema-oscuro,#2c3e50); font-size: 1.1rem;">
                         <i class="fas fa-list-check"></i> Productos Seleccionados
                     </h2>
                     <?php if (!empty($productos_seleccionados)): ?>
@@ -1162,7 +1163,7 @@ foreach ($productos_seleccionados as $id => $producto) {
             <!-- SECCIÓN INFERIOR: VISTA PREVIA -->
             <div class="preview-section">
                 <div class="preview-header">
-                    <h2 style="color: #2c3e50; font-size: 1.1rem;">
+                    <h2 style="color: var(--tema-oscuro,#2c3e50); font-size: 1.1rem;">
                         <i class="fas fa-eye"></i> Vista Previa
                     </h2>
                     <span style="font-size: 0.9rem; color: #666;">

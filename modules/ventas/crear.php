@@ -647,6 +647,7 @@ try {
             display: inline-block;
         }
     </style>
+    <?php require_once __DIR__ . '/../../includes/tema.php'; echo tema_head(true); ?>
 </head>
 <body class="h-full">
     <!-- Modal de ventas pausadas -->

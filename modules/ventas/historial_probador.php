@@ -43,6 +43,7 @@ try {
     <title>Historial del Probador Virtual</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <?php require_once __DIR__ . '/../../includes/tema.php'; echo tema_head(true); ?>
 </head>
 <body class="bg-gray-50">
     <?php include '../../includes/header.php'; ?>

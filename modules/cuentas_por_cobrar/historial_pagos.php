@@ -269,6 +269,7 @@ try {
             transform: scale(1.1);
         }
     </style>
+    <?php require_once __DIR__ . '/../../includes/tema.php'; echo tema_head(false); ?>
 </head>
 <body class="bg-gray-100">
     <!-- Header ya incluido arriba -->

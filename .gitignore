@@ -11,6 +11,8 @@
 # Archivos de base de datos
 *.sql
 *.sqlite
+# Excepción: los scripts de migración del proyecto sí se versionan
+!migrations/*.sql
 
 # Logs
 *.log

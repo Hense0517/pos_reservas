@@ -21,6 +21,7 @@ if (!$conn) {
     <title>Crear Marca</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <?php require_once __DIR__ . '/../../../includes/tema.php'; echo tema_head(false, true); ?>
 </head>
 <body>
     <div class="container mt-4">

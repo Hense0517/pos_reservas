@@ -65,6 +65,28 @@ if (!defined('HEADER_LOADED')) {
 }
 
 $page_title = isset($page_title) ? $page_title : ('Sistema POS - ' . htmlspecialchars($config['nombre_negocio'] ?? 'Mi Negocio'));
+
+// Datos para el header (solo presentación)
+$hdr_nombre_negocio = $config['nombre_negocio'] ?? 'Mi Negocio';
+$hdr_usuario = $_SESSION['usuario_nombre'] ?? '';
+$hdr_rol_raw = $_SESSION['usuario_rol'] ?? '';
+$hdr_roles = ['admin' => 'Administrador', 'vendedor' => 'Vendedor', 'cajero' => 'Cajero'];
+$hdr_rol = $hdr_roles[$hdr_rol_raw] ?? ucfirst((string) $hdr_rol_raw);
+
+$hdr_iniciales = '';
+foreach (array_slice(preg_split('/\s+/', trim($hdr_usuario)) ?: [], 0, 2) as $parte) {
+    $hdr_iniciales .= mb_strtoupper(mb_substr($parte, 0, 1));
+}
+if ($hdr_iniciales === '') {
+    $hdr_iniciales = 'U';
+}
+
+$hdr_puede = static function (string $modulo, string $accion) use (&$auth): bool {
+    return isset($auth) && $auth && method_exists($auth, 'hasPermission') && $auth->hasPermission($modulo, $accion);
+};
+$hdr_nueva_venta = $hdr_puede('ventas', 'crear');
+$hdr_nueva_reserva = $hdr_puede('reservas', 'crear');
+$hdr_logo = !empty($config['logo']) ? BASE_URL . ltrim($config['logo'], '/') : '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -74,61 +96,74 @@ $page_title = isset($page_title) ? $page_title : ('Sistema POS - ' . htmlspecial
     <title><?php echo $page_title; ?></title>
     <?php echo estilos_base(); ?>
 </head>
-<body class="bg-gray-100">
+<body class="app-body">
     <!-- Header fijo -->
-    <header class="header bg-white shadow-sm border-b fixed top-0 left-0 right-0" style="z-index: 50; height: 80px;">
-        <div class="h-full px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <div class="flex items-center">
-                <button id="menuToggle" class="lg:hidden mr-4 text-gray-600 hover:text-gray-900">
-                    <i class="fas fa-bars text-xl"></i>
-                </button>
-                <div class="flex items-center gap-4">
-                    <?php if(!empty($config['logo'])): ?>
-                        <!-- SOLO EL LOGO - sin placeholder -->
-                        <img src="<?php echo BASE_URL; ?>/<?php echo $config['logo']; ?>" 
-                             alt="Logo" 
-                             class="h-16 w-auto object-contain">
-                    <?php endif; ?>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900"><?php echo htmlspecialchars($config['nombre_negocio'] ?? 'Mi Negocio'); ?></h1>
-                        <p class="text-sm text-gray-500 hidden sm:block">Sistema POS</p>
-                    </div>
-                </div>
-            </div>
-            
-            <?php if (isset($_SESSION['usuario_id'])): ?>
-            <div class="flex items-center space-x-4">
-                <div class="text-right hidden sm:block">
-                    <p class="text-base font-medium text-gray-900"><?php echo htmlspecialchars($_SESSION['usuario_nombre'] ?? ''); ?></p>
-                    <p class="text-sm text-gray-500"><?php echo htmlspecialchars($_SESSION['usuario_rol'] ?? ''); ?></p>
-                </div>
-                <div class="relative">
-                    <button id="userMenuButton" class="flex items-center focus:outline-none">
-                        <div class="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-400 transition-colors">
-                            <i class="fas fa-user text-gray-600 text-lg"></i>
-                        </div>
-                    </button>
-                    <div id="userMenu" class="dropdown-menu">
-                        <a href="<?php echo BASE_URL; ?>modules/usuarios/perfil.php" class="dropdown-item">
-                            <i class="fas fa-user-edit"></i> Mi Perfil
-                        </a>
-                        <a href="<?php echo BASE_URL; ?>logout.php" class="dropdown-item">
-                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <?php endif; ?>
+    <header class="app-header">
+        <div class="hdr-left">
+            <button type="button" id="menuToggle" class="hdr-menu-btn" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a class="brand" href="<?php echo BASE_URL; ?>index.php" aria-label="Ir al inicio">
+                <?php if ($hdr_logo !== ''): ?>
+                    <span class="brand-logo"><img src="<?php echo htmlspecialchars($hdr_logo, ENT_QUOTES, 'UTF-8'); ?>" alt="Logo de <?php echo htmlspecialchars($hdr_nombre_negocio, ENT_QUOTES, 'UTF-8'); ?>"></span>
+                <?php else: ?>
+                    <span class="brand-logo is-icon"><i class="fas fa-scissors" aria-hidden="true"></i></span>
+                <?php endif; ?>
+                <span class="brand-text">
+                    <span class="brand-name"><?php echo htmlspecialchars($hdr_nombre_negocio, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="brand-sub"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> Peluquería &amp; Reservas</span>
+                </span>
+            </a>
         </div>
+
+        <?php if (isset($_SESSION['usuario_id'])): ?>
+        <div class="hdr-right">
+            <span class="hdr-clock" title="Fecha y hora"><i class="far fa-clock" aria-hidden="true"></i> <span data-reloj></span></span>
+
+            <?php if ($hdr_nueva_reserva): ?>
+                <a class="hdr-pill" href="<?php echo BASE_URL; ?>modules/reservas/crear.php"><i class="fas fa-calendar-plus" aria-hidden="true"></i> Nueva reserva</a>
+            <?php endif; ?>
+            <?php if ($hdr_nueva_venta): ?>
+                <a class="hdr-pill is-primary" href="<?php echo BASE_URL; ?>modules/ventas/crear.php"><i class="fas fa-cash-register" aria-hidden="true"></i> Nueva venta</a>
+            <?php endif; ?>
+
+            <div class="relative" style="position:relative">
+                <button type="button" id="userMenuButton" class="user-chip" aria-haspopup="true" aria-expanded="false" aria-controls="userMenu">
+                    <span class="user-chip-text">
+                        <span class="user-chip-name" style="display:block"><?php echo htmlspecialchars($hdr_usuario, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span class="user-chip-role"><?php echo htmlspecialchars($hdr_rol, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </span>
+                    <span class="user-avatar" aria-hidden="true"><?php echo htmlspecialchars($hdr_iniciales, ENT_QUOTES, 'UTF-8'); ?></span>
+                </button>
+                <div id="userMenu" class="dropdown-menu" role="menu">
+                    <div class="dropdown-head">
+                        <strong><?php echo htmlspecialchars($hdr_usuario, ENT_QUOTES, 'UTF-8'); ?></strong>
+                        <span><?php echo htmlspecialchars($hdr_rol, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                    <a href="<?php echo BASE_URL; ?>modules/usuarios/perfil.php" class="dropdown-item" role="menuitem">
+                        <i class="fas fa-user-pen" aria-hidden="true"></i> Mi perfil
+                    </a>
+                    <?php if ($hdr_rol_raw === 'admin'): ?>
+                    <a href="<?php echo BASE_URL; ?>modules/configuracion/" class="dropdown-item" role="menuitem">
+                        <i class="fas fa-palette" aria-hidden="true"></i> Colores y negocio
+                    </a>
+                    <?php endif; ?>
+                    <a href="<?php echo BASE_URL; ?>logout.php" class="dropdown-item is-danger" role="menuitem">
+                        <i class="fas fa-right-from-bracket" aria-hidden="true"></i> Cerrar sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </header>
 
-    <!-- Sidebar (ajustado para dejar espacio al header fijo) -->
-    <aside id="sidebar" class="sidebar fixed top-[80px] left-0 w-64 h-[calc(100vh-80px)] bg-white border-r border-gray-200 overflow-y-auto">
+    <!-- Menú lateral -->
+    <aside id="sidebar" class="sidebar" aria-label="Menú principal">
         <?php include __DIR__ . '/sidebar.php'; ?>
     </aside>
 
-    <!-- Overlay para móviles -->
-    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
+    <!-- Fondo oscuro para el menú en móvil -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
     <!-- Contenido principal -->
-    <main class="main-content ml-64 mt-[80px] p-6">
+    <main class="main-content">
